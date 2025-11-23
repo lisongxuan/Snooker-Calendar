@@ -1,0 +1,16 @@
+# Requirements for the snooker scripts
+# Core dependencies used by the provided scripts
+SQLAlchemy>=1.4
+pymysql
+icalendar
+pytz
+
+# If `snooker` (the module providing `snooker.api.SnookerOrgApi`) is an
+# external package, add it here, e.g.:
+# snooker
+
+# Notes:
+# - `configparser`, `sys`, `datetime`, `time` are part of the Python stdlib and
+#   do not need to be listed here.
+# - If you want pinned versions, replace entries above like `pymysql` with
+#   `pymysql==1.0.3` (or your chosen versions).
