@@ -43,27 +43,6 @@ def create_match_event(match, player_id):
     """
     event = Event()
 
-    # Determine start and end times
-    if match.StartDate and match.EndDate:
-        # Use actual start and end dates if available
-        start_time = datetime.fromisoformat(match.StartDate.replace('Z', '+00:00'))
-        end_time = datetime.fromisoformat(match.EndDate.replace('Z', '+00:00'))
-    else:
-        # Use scheduled date and assume 3 hours duration
-        scheduled_time = datetime.fromisoformat(match.ScheduledDate.replace('Z', '+00:00'))
-        start_time = scheduled_time
-        end_time = scheduled_time + timedelta(hours=3)
-
-    # Ensure timezone awareness
-    if start_time.tzinfo is None:
-        start_time = pytz.utc.localize(start_time)
-    if end_time.tzinfo is None:
-        end_time = pytz.utc.localize(end_time)
-
-    # Set event times
-    event.add('dtstart', start_time)
-    event.add('dtend', end_time)
-
     # Query additional information
     player1_info = get_player_info(match.Player1ID)
     player2_info = get_player_info(match.Player2ID)
@@ -153,7 +132,7 @@ def create_match_event(match, player_id):
             description_parts.append(f"Country: {event_info['country']}")
 
     description_parts.append("")  # Empty line for separation
-
+    duration_hours=3  # Default match duration in hours
     # Add round details
     if round_info:
         description_parts.append(f"Round: {round_name}")
@@ -161,7 +140,11 @@ def create_match_event(match, player_id):
             description_parts.append(f"Round Note: {round_info['note']}")
         if round_info.get('actual_money') and round_info['currency']:
             description_parts.append(f"Prize Money: {round_info['actual_money']} {round_info['currency']}")
-
+        if round_info.get('distance'):
+            description_parts.append(f"Match Distance: {round_info['distance']} frames")
+            # Estimate match duration based on distance (assuming average 30 minutes per frame)
+            duration_hours = round_info['distance'] * 0.5
+            
     # Add estimated time note if applicable
     if match.Estimated:
         description_parts.append("TIME IS ESTIMATED")
@@ -204,6 +187,27 @@ def create_match_event(match, player_id):
     if match.TableNo > 0:
         event.add('location', f"Table {match.TableNo}")
 
+        # Determine start and end times
+    if match.StartDate and match.EndDate:
+        # Use actual start and end dates if available
+        start_time = datetime.fromisoformat(match.StartDate.replace('Z', '+00:00'))
+        end_time = datetime.fromisoformat(match.EndDate.replace('Z', '+00:00'))
+    else:
+        # Use scheduled date and assume 3 hours duration
+        scheduled_time = datetime.fromisoformat(match.ScheduledDate.replace('Z', '+00:00'))
+        start_time = scheduled_time
+        end_time = scheduled_time + timedelta(hours=duration_hours)
+
+    # Ensure timezone awareness
+    if start_time.tzinfo is None:
+        start_time = pytz.utc.localize(start_time)
+    if end_time.tzinfo is None:
+        end_time = pytz.utc.localize(end_time)
+
+    # Set event times
+    event.add('dtstart', start_time)
+    event.add('dtend', end_time)
+    
     return event
 
 

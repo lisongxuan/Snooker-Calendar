@@ -224,6 +224,7 @@ def query_round_info(event_id, round_num):
         if round_info:
             return {
                 'round_name': round_info.round_name,
+                'distance': round_info.distance,
                 'main_event': round_info.main_event,
                 'note': round_info.note,
                 'value_type': round_info.value_type,
