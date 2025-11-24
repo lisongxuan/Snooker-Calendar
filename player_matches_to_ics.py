@@ -63,8 +63,7 @@ def create_match_event(match, player_id):
     round_info = query_round_info(match.EventID, match.Round)
 
     # Check if this is a future match
-    is_future_match = match.Unfinished
-
+    is_future_match = match.WinnerID==0
     # Format player names
     def format_player_name(player_info, player_id):
         if player_info:
@@ -102,11 +101,12 @@ def create_match_event(match, player_id):
             description_parts.append(f"Nationality: {player1_info['nationality']}")
         if player1_info.get('born'):
             description_parts.append(f"Born: {player1_info['born']}")
-        if player1_info.get('num_ranking_titles') and player1_info['num_ranking_titles'] > 0:
-            description_parts.append(f"Ranking Titles: {player1_info['num_ranking_titles']}")
+        
 
         # Add ranking information for future matches only
         if is_future_match:
+            if player1_info.get('num_ranking_titles') and player1_info['num_ranking_titles'] > 0:
+                description_parts.append(f"Ranking Titles: {player1_info['num_ranking_titles']}")
             player1_ranking = query_player_ranking(match.Player1ID)
             if player1_ranking:
                 description_parts.append(f"World Ranking: {player1_ranking['position']}")
@@ -119,11 +119,11 @@ def create_match_event(match, player_id):
             description_parts.append(f"Nationality: {player2_info['nationality']}")
         if player2_info.get('born'):
             description_parts.append(f"Born: {player2_info['born']}")
-        if player2_info.get('num_ranking_titles') and player2_info['num_ranking_titles'] > 0:
-            description_parts.append(f"Ranking Titles: {player2_info['num_ranking_titles']}")
-
+        
         # Add ranking information for future matches only
         if is_future_match:
+            if player2_info.get('num_ranking_titles') and player2_info['num_ranking_titles'] > 0:
+                description_parts.append(f"Ranking Titles: {player2_info['num_ranking_titles']}")
             player2_ranking = query_player_ranking(match.Player2ID)
             if player2_ranking:
                 description_parts.append(f"World Ranking: {player2_ranking['position']}")
@@ -143,8 +143,6 @@ def create_match_event(match, player_id):
             description_parts.append(f"City: {event_info['city']}")
         elif event_info.get('country'):
             description_parts.append(f"Country: {event_info['country']}")
-        if event_info.get('type'):
-            description_parts.append(f"Type: {event_info['type']}")
 
     description_parts.append("")  # Empty line for separation
 
@@ -153,14 +151,12 @@ def create_match_event(match, player_id):
         description_parts.append(f"Round: {round_name}")
         if round_info.get('note'):
             description_parts.append(f"Round Note: {round_info['note']}")
-        if round_info.get('value_type'):
-            description_parts.append(f"Value Type: {round_info['value_type']}")
-        if round_info.get('rank'):
-            description_parts.append(f"Rank: {round_info['rank']}")
+        if round_info.get('actual_money') and round_info['currency']:
+            description_parts.append(f"Prize Money: {round_info['actual_money']} {round_info['currency']}")
 
     # Add estimated time note if applicable
     if match.Estimated:
-        description_parts.append("⚠️ TIME IS ESTIMATED")
+        description_parts.append("TIME IS ESTIMATED")
 
     # Add URLs and notes
     if match.DetailsUrl:
@@ -190,10 +186,6 @@ def create_match_event(match, player_id):
     # Add live URL if available
     if match.LiveUrl:
         description_parts.append(f"Live: {match.LiveUrl}")
-
-    # Add IDs for reference
-    description_parts.append("")
-    description_parts.append(f"Event ID: {match.EventID} | Round: {match.Round} | Player1 ID: {match.Player1ID} | Player2 ID: {match.Player2ID}")
 
     event.add('description', '\n'.join(description_parts))
 
@@ -233,16 +225,21 @@ def generate_player_calendar(player_id, year, headers=None):
         return None
 
     print(f"Found {len(matches)} matches")
-
+    player_info = query_player_info(player_id)
     # Create calendar
     cal = Calendar()
     cal.add('prodid', '-//Snooker Calendar Generator//snooker-calendar//')
     cal.add('version', '2.0')
     cal.add('calscale', 'GREGORIAN')
     cal.add('method', 'PUBLISH')
-    cal.add('name', f'Snooker Matches - Player {player_id} ({year})')
-    cal.add('x-wr-calname', f'Snooker Matches - Player {player_id} ({year})')
-    cal.add('description', f'Snooker matches for player ID {player_id} in {year}')
+    if player_info:
+        if player_info.get('surname_first', False):
+            player_name = f"{player_info['lastname']}, {player_info['firstname']}"
+        else:
+            player_name = f"{player_info['firstname']} {player_info['lastname']}"
+        cal.add('name', f'Snooker Matches - {player_name} ({year})')
+        cal.add('x-wr-calname', f'Snooker Matches - {player_name} ({year})')
+        cal.add('description', f'Snooker matches for {player_name} in {year}')
 
     # Add events
     for match in matches:
@@ -254,7 +251,8 @@ def generate_player_calendar(player_id, year, headers=None):
             print(f"Error processing match {match.ID}: {e}")
             continue
 
-    return cal.to_ical().decode('utf-8')
+    # Return bytes to preserve CRLF line endings and proper RFC5545 folding
+    return cal.to_ical()
 
 
 def main():
@@ -271,19 +269,20 @@ def main():
     output_file = sys.argv[3] if len(sys.argv) > 3 else f"player_{player_id}_{year}.ics"
 
     try:
-        # Generate calendar
-        ics_content = generate_player_calendar(player_id, year)
+        # Generate calendar (bytes)
+        ics_bytes = generate_player_calendar(player_id, year)
 
-        if ics_content is None:
+        if ics_bytes is None:
             print("No matches found, exiting.")
             sys.exit(1)
 
-        # Write to file
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(ics_content)
+        # Write bytes to file to preserve CRLF and folding
+        with open(output_file, 'wb') as f:
+            f.write(ics_bytes)
 
         print(f"Successfully created calendar file: {output_file}")
-        print(f"Calendar contains events for {ics_content.count('BEGIN:VEVENT')} matches")
+        # Count VEVENT occurrences in bytes
+        print(f"Calendar contains events for {ics_bytes.count(b'BEGIN:VEVENT')} matches")
 
     except Exception as e:
         print(f"Error generating calendar: {e}")
