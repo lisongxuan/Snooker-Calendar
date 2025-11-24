@@ -7,12 +7,14 @@ from typing import List, Optional
 import os
 
 from query_data import (
-    query_player_info, 
-    query_player_ranking, 
-    query_all_ranking_players,
+    query_info_last_updated,
+    query_all_ranking_players
 )
 
 app = FastAPI(title="Snooker Calendar API", version="1.0.0")
+
+# 挂载静态文件
+app.mount("/static", StaticFiles(directory="ics_calendars"), name="static")
 
 class PlayerFilter(BaseModel):
     nationality: Optional[str] = None
@@ -58,5 +60,14 @@ def download_player_calendar(player_id: int):
             media_type='text/calendar',
             filename=f"player_{player_id}.ics"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/info/lastupdated")
+def get_last_updated_info():
+    """获取最后更新时间"""
+    try:
+        last_updated = query_info_last_updated()
+        return last_updated
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
