@@ -267,18 +267,49 @@ def query_player_ranking(player_id):
         return None
     finally:
         session.close()
-def query_all_ranking_players():
+def query_all_ranking_players(page=1, limit=-1, search=None):
     """
         查询所有有排名的球员
     """
     session = DBSession()
     try:
-        results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
-            Player, Player.id == Ranking.player_id
-        ).outerjoin(
-            IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
-        ).all()
-
+        if search:
+            search_pattern = f"%{search}%"
+            if limit > 0:
+                results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
+                    Player, Player.id == Ranking.player_id
+                ).outerjoin(
+                    IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
+                ).filter(
+                    sqla.or_(
+                        Player.first_name.ilike(search_pattern),
+                        Player.last_name.ilike(search_pattern)
+                    )
+                ).limit(limit).offset((page - 1) * limit).all()
+            else:
+                results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
+                    Player, Player.id == Ranking.player_id
+                ).outerjoin(
+                    IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
+                ).filter(
+                    sqla.or_(
+                        Player.first_name.ilike(search_pattern),
+                        Player.last_name.ilike(search_pattern)
+                    )
+                ).all()
+        else:
+            if limit > 0:
+                results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
+                Player, Player.id == Ranking.player_id
+                ).outerjoin(
+                IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
+                ).limit(limit).offset((page - 1) * limit).all()
+            else:
+                results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
+                Player, Player.id == Ranking.player_id
+                ).outerjoin(
+                IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
+                ).all()
         players = []
         for ranking, player, ics in results:
             # Build a merged dict with the fields the caller expects.
@@ -302,7 +333,7 @@ def query_all_ranking_players():
         return None
     finally:
         session.close()
-        
+
 def query_info_last_updated():
     session = DBSession()
     try:

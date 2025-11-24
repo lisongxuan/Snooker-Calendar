@@ -6,3 +6,7 @@ icalendar
 pytz
 snooker
 apscheduler
+fastapi
+uvicorn
+python-multipart
+jinja2
