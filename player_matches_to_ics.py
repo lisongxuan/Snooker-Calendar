@@ -186,7 +186,7 @@ def create_match_event(match, player_id):
     # Add live URL if available
     if match.LiveUrl:
         description_parts.append(f"Live: {match.LiveUrl}")
-
+    description_parts.append("Data source: snooker.org")
     event.add('description', '\n'.join(description_parts))
 
     # Add unique identifier
@@ -239,7 +239,7 @@ def generate_player_calendar(player_id, year, headers=None):
             player_name = f"{player_info['firstname']} {player_info['lastname']}"
         cal.add('name', f'Snooker Matches - {player_name} ({year})')
         cal.add('x-wr-calname', f'Snooker Matches - {player_name} ({year})')
-        cal.add('description', f'Snooker matches for {player_name} in {year}')
+        cal.add('description', f'Snooker matches for {player_name} in {year}, Data source: snooker.org')
 
     # Add events
     for match in matches:
