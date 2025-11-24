@@ -3,7 +3,7 @@ import sqlalchemy as sqla
 import time
 from snooker.api import SnookerOrgApi
 from sqlalchemy.ext.declarative import declarative_base
-
+from query_data import get_current_season
 # Function to load configuration from config.txt
 def load_config(filename='config.txt'):
     config = configparser.ConfigParser()
@@ -147,7 +147,7 @@ def fetch_and_store_players():
     client = SnookerOrgApi(headers={'X-Requested-By': api_config['x_requested_by']})
 
     # Get rankings
-    rankings = client.rankings(api_config['ranking_type'], int(api_config['season']))
+    rankings = client.rankings(api_config['ranking_type'], get_current_season())
     print(f"Found {len(rankings)} rankings")
 
     # Create database session

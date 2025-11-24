@@ -1,4 +1,8 @@
 import configparser
+import requests
+import time
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 import sqlalchemy as sqla
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -347,6 +351,84 @@ def query_info_last_updated():
         session.close()
 
 
+def get_current_season(retries: int = 3, backoff_factor: float = 1.0, status_forcelist=(429, 500, 502, 503, 504)):
+    """
+    从 https://api.snooker.org/?t=20 获取当前赛季（CurrentSeason）。
+
+    使用 `api_config['x_requested_by']` 设置请求头 `X-Requested-By`。
+    返回 CurrentSeason 的整数值，如果请求失败或未找到返回 None。
+    """
+    url = 'https://api.snooker.org/?t=20'
+    headers = {}
+    try:
+        # api_config 来自模块顶部的 load_config
+        x_req = api_config.get('x_requested_by') if isinstance(api_config, dict) else None
+        if x_req:
+            headers['X-Requested-By'] = x_req
+    except Exception:
+        # 忽略, headers 保持为空
+        pass
+
+    # Build a requests Session with retry policy
+    session = requests.Session()
+    try:
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+            allowed_methods=frozenset(["GET", "HEAD"])
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
+
+        resp = session.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        # 期望返回像 [{"CurrentSeason": 2024}]
+        if isinstance(data, list) and len(data) > 0:
+            return data[0].get('CurrentSeason')
+        elif isinstance(data, dict):
+            return data.get('CurrentSeason')
+        else:
+            return None
+    except Exception as e:
+        # If Retry-based adapter isn't available or raises, fallback to manual retry loop
+        try:
+            # print a debug/log message indicating fallback to manual retries
+            print(f"Primary request failed or retry adapter error, fallback manual retry: {e}")
+            for attempt in range(1, retries + 1):
+                try:
+                    resp = requests.get(url, headers=headers, timeout=10)
+                    resp.raise_for_status()
+                    data = resp.json()
+                    if isinstance(data, list) and len(data) > 0:
+                        return data[0].get('CurrentSeason')
+                    elif isinstance(data, dict):
+                        return data.get('CurrentSeason')
+                    else:
+                        return None
+                except Exception as inner_e:
+                    # If it's the last attempt, raise
+                    if attempt == retries:
+                        print(f"Final attempt failed: {inner_e}")
+                        return None
+                    # Sleep with exponential backoff before next attempt
+                    sleep_time = backoff_factor * (2 ** (attempt - 1))
+                    print(f"Retry {attempt}/{retries} failed: {inner_e}. Sleeping {sleep_time}s before next attempt.")
+                    time.sleep(sleep_time)
+        except Exception as inner_fallback_e:
+            print(f"Fallback retry mechanism failed: {inner_fallback_e}")
+            return None
+    finally:
+        try:
+            session.close()
+        except Exception:
+            pass
+
+
 if __name__ == '__main__':
     # Test the query functions
     print("Testing query functions...")
@@ -371,5 +453,12 @@ if __name__ == '__main__':
         print(f"Round info: {round_info}")
     else:
         print("Round not found or error occurred")
+
+    # Query current season from API
+    current_season = get_current_season()
+    if current_season is not None:
+        print(f"CurrentSeason from API: {current_season}")
+    else:
+        print("Could not fetch CurrentSeason from API")
 
 

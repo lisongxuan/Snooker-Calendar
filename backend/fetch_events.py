@@ -2,6 +2,7 @@ import configparser
 import sqlalchemy as sqla
 import time
 from snooker.api import SnookerOrgApi
+from query_data import get_current_season
 from sqlalchemy.ext.declarative import declarative_base
 
 # Function to load configuration from config.txt
@@ -213,7 +214,8 @@ def fetch_and_store_events(season):
     """
     # Initialize API client
     client = SnookerOrgApi(headers={'X-Requested-By': api_config['x_requested_by']})
-
+    if season is None:
+        season = get_current_season()
     # Get events for the season
     events = client.season_events(season)
     print(f"Found {len(events)} events for season {season}")

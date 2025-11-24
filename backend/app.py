@@ -8,7 +8,8 @@ import os
 
 from query_data import (
     query_info_last_updated,
-    query_all_ranking_players
+    query_all_ranking_players,
+    get_current_season
 )
 
 app = FastAPI(title="Snooker Calendar API", version="1.0.0")
@@ -45,7 +46,7 @@ def download_player_calendar(player_id: int):
         if not os.path.exists(filepath):
             # 如果不存在，实时生成
             from player_matches_to_ics import generate_player_calendar
-            ics_content = generate_player_calendar(player_id, datetime.now().year)
+            ics_content = generate_player_calendar(player_id, get_current_season())
             
             if not ics_content:
                 raise HTTPException(status_code=404, detail="No matches found")

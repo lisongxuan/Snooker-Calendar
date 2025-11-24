@@ -6,7 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from player_matches_to_ics import generate_player_calendar
-from query_data import query_all_ranking_players
+from query_data import query_all_ranking_players,get_current_season
 def load_config(filename='config.txt'):
     config = configparser.ConfigParser()
     config.read(filename)
@@ -55,7 +55,7 @@ def generate_all_players_calendars(year=None):
         year (int): 目标年份，默认当前年份
     """
     if year is None:
-        year = datetime.now().year
+        year = get_current_season()
     
     # 创建输出目录
     output_dir = f"ics_calendars"
