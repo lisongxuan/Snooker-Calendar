@@ -258,6 +258,39 @@ def query_player_ranking(player_id):
         return None
     finally:
         session.close()
+def query_all_ranking_players():
+    """
+        查询所有有排名的球员
+    """
+    session = DBSession()
+    try:
+        results = session.query(Ranking, Player).outerjoin(
+            Player, Player.id == Ranking.player_id
+        ).all()
+
+        players = []
+        for ranking, player in results:
+            # Build a merged dict with the fields the caller expects.
+            players.append({
+                'type': getattr(player, 'type', None) if player is not None else None,
+                'firstname': getattr(player, 'first_name', None) if player is not None else None,
+                'lastname': getattr(player, 'last_name', None) if player is not None else None,
+                'surname_first': getattr(player, 'surname_first', None) if player is not None else None,
+                'nationality': getattr(player, 'nationality', None) if player is not None else None,
+                'born': getattr(player, 'born', None) if player is not None else None,
+                'num_ranking_titles': getattr(player, 'num_ranking_titles', None) if player is not None else None,
+
+                'position': ranking.position,
+                'player_id': ranking.player_id,
+                'sum_value': ranking.sum_value
+            })
+
+        return players
+    except Exception as e:
+        print(f"Error querying ranking: {e}")
+        return None
+    finally:
+        session.close()
 
 # Example usage
 if __name__ == '__main__':
@@ -284,3 +317,5 @@ if __name__ == '__main__':
         print(f"Round info: {round_info}")
     else:
         print("Round not found or error occurred")
+
+

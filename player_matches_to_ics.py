@@ -9,6 +9,7 @@ from snooker.api import SnookerOrgApi
 from icalendar import Calendar, Event, vText
 import pytz
 from query_data import query_player_info, query_event_info, query_round_info, query_player_ranking
+from fetch_players import fetch_single_player
 def load_config(filename='config.txt'):
     config = configparser.ConfigParser()
     config.read(filename)
@@ -21,6 +22,13 @@ def load_config(filename='config.txt'):
 
     return db_config, api_config
 db_config, api_config = load_config()
+
+def get_player_info(player_id):
+    player_info = query_player_info(player_id)
+    if not player_info:
+        fetch_single_player(player_id)
+    player_info = query_player_info(player_id)
+    return player_info
 
 def create_match_event(match, player_id):
     """
@@ -57,8 +65,8 @@ def create_match_event(match, player_id):
     event.add('dtend', end_time)
 
     # Query additional information
-    player1_info = query_player_info(match.Player1ID)
-    player2_info = query_player_info(match.Player2ID)
+    player1_info = get_player_info(match.Player1ID)
+    player2_info = get_player_info(match.Player2ID)
     event_info = query_event_info(match.EventID)
     round_info = query_round_info(match.EventID, match.Round)
 
