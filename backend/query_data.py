@@ -1,4 +1,5 @@
 import configparser
+import datetime
 import requests
 import time
 from requests.adapters import HTTPAdapter
@@ -409,19 +410,19 @@ def get_current_season(retries: int = 3, backoff_factor: float = 1.0, status_for
                     elif isinstance(data, dict):
                         return data.get('CurrentSeason')
                     else:
-                        return None
+                        return datetime.now().year 
                 except Exception as inner_e:
                     # If it's the last attempt, raise
                     if attempt == retries:
                         print(f"Final attempt failed: {inner_e}")
-                        return None
+                        return datetime.now().year
                     # Sleep with exponential backoff before next attempt
                     sleep_time = backoff_factor * (2 ** (attempt - 1))
                     print(f"Retry {attempt}/{retries} failed: {inner_e}. Sleeping {sleep_time}s before next attempt.")
                     time.sleep(sleep_time)
         except Exception as inner_fallback_e:
             print(f"Fallback retry mechanism failed: {inner_fallback_e}")
-            return None
+            return datetime.now().year
     finally:
         try:
             session.close()
