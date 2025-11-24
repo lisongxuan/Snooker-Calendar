@@ -247,7 +247,7 @@ def generate_player_calendar(player_id, year, headers=None):
             player_name = f"{player_info['firstname']} {player_info['lastname']}"
         cal.add('name', f'Snooker Matches - {player_name} ({year})')
         cal.add('x-wr-calname', f'Snooker Matches - {player_name} ({year})')
-        cal.add('description', f'Snooker matches for {player_name} in {year}, Data source: snooker.org, last updated {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")}')
+        cal.add('description', f'Snooker matches for {player_name}, Data source: snooker.org, last updated {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")}')
 
     # Add events
     for match in matches:
