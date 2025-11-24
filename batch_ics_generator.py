@@ -1,6 +1,9 @@
 import os
 import configparser
 import time
+import sqlalchemy as sqla
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from player_matches_to_ics import generate_player_calendar
 from query_data import query_all_ranking_players
@@ -16,6 +19,33 @@ def load_config(filename='config.txt'):
 
     return db_config, api_config
 db_config, api_config = load_config()
+
+# Create SQLAlchemy engine
+engine = sqla.create_engine(f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}", pool_size=10, max_overflow=-1)
+Base = declarative_base()
+class IcsLastUpdated(Base):
+    __tablename__ = 'icslastupdated'
+    playerid = sqla.Column(sqla.Integer, primary_key=True)
+    lastupdated = sqla.Column(sqla.DateTime)
+
+    def __init__(self, pid, lastupdated):
+        self.playerid = pid
+        self.lastupdated = lastupdated
+
+def init_db():
+    Base.metadata.create_all(engine)
+
+def update_ics_last_updated(player_id, timestamp):
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    record = session.query(IcsLastUpdated).filter_by(playerid=player_id).first()
+    if record:
+        record.lastupdated = timestamp
+    else:
+        record = IcsLastUpdated(player_id, timestamp)
+        session.add(record)
+    session.commit()
+    session.close()
 
 def generate_all_players_calendars(year=None):
     """
@@ -67,7 +97,8 @@ def generate_all_players_calendars(year=None):
                 
                 with open(filepath, 'wb') as f:
                     f.write(ics_content)
-                
+
+                update_ics_last_updated(player_id, datetime.now())
                 success_count += 1
                 print(f"✓ Saved: {filepath}")
             else:
@@ -82,4 +113,5 @@ def generate_all_players_calendars(year=None):
     print(f"\nCompleted: {success_count}/{total_count} calendars generated successfully")
 
 if __name__ == '__main__':
+    init_db()
     generate_all_players_calendars()

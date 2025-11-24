@@ -120,6 +120,15 @@ class Ranking(Base):
     player_id = sqla.Column(sqla.Integer)
     sum_value = sqla.Column(sqla.Float)
 
+class IcsLastUpdated(Base):
+    __tablename__ = 'icslastupdated'
+    playerid = sqla.Column(sqla.Integer, primary_key=True)
+    lastupdated = sqla.Column(sqla.DateTime)
+class InfoLastUpdated(Base):
+    __tablename__ = 'infolastupdated'
+    info = sqla.Column(sqla.String(255), primary_key=True)
+    lastupdated = sqla.Column(sqla.DateTime)
+
 # Create session factory
 DBSession = sessionmaker(bind=engine)
 
@@ -264,12 +273,14 @@ def query_all_ranking_players():
     """
     session = DBSession()
     try:
-        results = session.query(Ranking, Player).outerjoin(
+        results = session.query(Ranking, Player, IcsLastUpdated).outerjoin(
             Player, Player.id == Ranking.player_id
+        ).outerjoin(
+            IcsLastUpdated, IcsLastUpdated.playerid == Ranking.player_id
         ).all()
 
         players = []
-        for ranking, player in results:
+        for ranking, player, ics in results:
             # Build a merged dict with the fields the caller expects.
             players.append({
                 'type': getattr(player, 'type', None) if player is not None else None,
@@ -279,10 +290,10 @@ def query_all_ranking_players():
                 'nationality': getattr(player, 'nationality', None) if player is not None else None,
                 'born': getattr(player, 'born', None) if player is not None else None,
                 'num_ranking_titles': getattr(player, 'num_ranking_titles', None) if player is not None else None,
-
                 'position': ranking.position,
                 'player_id': ranking.player_id,
-                'sum_value': ranking.sum_value
+                'sum_value': ranking.sum_value,
+                'last_updated': ics.lastupdated if ics is not None else None
             })
 
         return players
@@ -291,8 +302,19 @@ def query_all_ranking_players():
         return None
     finally:
         session.close()
+        
+def query_info_last_updated():
+    session = DBSession()
+    try:
+        result = session.query(InfoLastUpdated).all()
+        return result
+    except Exception as e:
+        print(f"Error querying info last updated: {e}")
+        return None
+    finally:
+        session.close()
 
-# Example usage
+
 if __name__ == '__main__':
     # Test the query functions
     print("Testing query functions...")
