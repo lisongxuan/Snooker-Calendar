@@ -205,7 +205,7 @@ def fetch_single_event(event_data, client=None, session=None):
         if should_close_session:
             session.close()
 
-def fetch_and_store_events(season):
+def fetch_and_store_events(season=None):
     """
     Fetch and store all events for a given season and their rounds.
 
