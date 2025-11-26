@@ -2,9 +2,12 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import configparser
+from datetime import datetime
 
 from query_data import (
     query_info_last_updated,
@@ -12,7 +15,27 @@ from query_data import (
     get_current_season
 )
 
+# 读取配置文件
+config = configparser.ConfigParser()
+config.read('config.txt')
+
+# 获取允许的域名列表
+allowed_origins = []
+if config.has_section('cors') and config.has_option('cors', 'allowed_origins'):
+    origins_str = config.get('cors', 'allowed_origins')
+    if origins_str.strip():
+        allowed_origins = [origin.strip() for origin in origins_str.split(',')]
+
 app = FastAPI(title="Snooker Calendar API", version="1.0.0")
+
+# 添加CORS中间件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory="ics_calendars"), name="static")
