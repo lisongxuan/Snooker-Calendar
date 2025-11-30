@@ -1,0 +1,44 @@
+const en = {
+    header: {
+        title:"Snooker Calendar",
+        about:"About",
+        author:"Developer",
+        github:"GitHub Repository",
+        contactmail:"Feedback Email(Click to Copy)",
+        updatelog:"Update Log",
+        temporary:"No",
+        copysuccess:"Copy Success",
+        copyfail:"Copy Failed",
+        selectlanguagesuccess:"Language switched, please refresh the page if there is any problem",
+    },
+    app:{
+        en:"English",
+        jp:"Japanese",
+        cn:"Chinese",
+        de:"German",
+        fr:"French",
+        kr:"Korean",
+        allLanguages:"All Languages",
+        position:"Position",
+        name:"Name",
+        sumValue:"Sum Value",
+        rankingTitles:"Ranking Titles",
+        downloadICS:"Download ICS",
+        googleCalendar:"Google Calendar",
+        lastUpdated:"Last Updated",
+    },
+    updateLog:{
+        title:"Update Log",
+        pageTitle:"Update Log - Snooker Calendar",
+        content:[
+            {
+                version:"1.0.0",
+                date:"2025-11-28",
+                detail:[
+                    "1. Basic functions implemented",
+                ]
+            }
+        ]
+    }
+}
+export default en;
