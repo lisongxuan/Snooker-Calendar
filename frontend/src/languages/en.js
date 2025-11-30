@@ -43,7 +43,7 @@ const en = {
                 detail:[
                     "1. Basic functions implemented",
                 ]
-            }
+            },
             {
                 version:"1.1.0",
                 date:"2025-11-30",
