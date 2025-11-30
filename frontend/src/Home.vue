@@ -182,15 +182,24 @@ const handleReturn = () => {
 };
 
 const downloadICS = (playerId: number) => {
+  // === Umami 事件追踪 ===
+  window.umami?.track('download-ics', {
+    player_id: playerId
+  });
+
   const url = `${config.backendUrl}/api/calendar/${playerId}`;
   window.open(url, '_blank');
 };
 
 const addToGoogleCalendar = (playerId: number) => {
+  // === Umami 事件追踪 ===
+  window.umami?.track('google-calendar', {
+    player_id: playerId
+  });
+
   const url = `https://www.google.com/calendar/render?cid=${config.backendWebCalUrl}/static/${playerId}.ics`;
   window.open(url, '_blank');
 };
-
 const getPlayers = async () => {
   const result = await axios.get(`${config.backendUrl}/api/players?limit=200`);
   return result.data;
