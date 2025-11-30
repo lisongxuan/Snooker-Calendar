@@ -26,6 +26,10 @@
           style="margin-top: 10px;"
         />
         -->
+        <div class="flex-row">
+          <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? playerInfoDate: $t('app.noData') }}</el-tag>
+          <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? eventInfoDate : $t('app.noData') }}</el-tag>
+        </div>
         <el-table :data="tableData"  class="custom-table">
           <el-table-column prop="position" :label="$t('app.position')"  />
           <el-table-column :label="$t('app.name')" >
@@ -47,7 +51,7 @@
           </el-table-column>
           <el-table-column :label="$t('app.lastUpdated')" >
             <template #default="{ row }">
-              <span>{{ row.last_updated || 'never' }}</span>
+              <span>{{ row.last_updated || $t('app.noData') }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -80,6 +84,8 @@ interface Pagination {
   page: number;
   per_page: number;
 }
+const playerInfoDate=ref('');
+const eventInfoDate=ref('');
 const tempPaginationNumber = ref(10);
 const paginationNumber =ref(10);
 const inputValue = ref('')
@@ -193,6 +199,14 @@ onMounted(async () => {
        // 加载玩家数据
        const playersData = await getPlayers();
     tableData.value = playersData;
+    const dataDate = await getLastUpdated();
+    for (const item of dataDate) {
+      if (item.info === 'players') {
+        playerInfoDate.value = item.lastupdated;
+      } else if (item.type === 'events') {
+        eventInfoDate.value = item.lastupdated;
+      }
+    }
 const storedPaginationNumber = Cookies.get('paginationNumber');
       if (storedPaginationNumber) {
         paginationNumber.value = parseInt(storedPaginationNumber, 10);

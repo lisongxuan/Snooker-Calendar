@@ -27,7 +27,7 @@
         <template #title>{{$t('header.about')}}</template>
         <el-menu-item index="2-1"><a href="https://arkady14.fun" target="_blank" class="github-link">{{$t('header.author')}}</a></el-menu-item>
         <el-menu-item index="2-2">
-          <a href="https://github.com/lisongxuan/FFXIV-text-search-engine" target="_blank" class="github-link">
+          <a href="https://github.com/lisongxuan/Snooker-Calendar" target="_blank" class="github-link">
             {{$t('header.github')}}
           </a>
         </el-menu-item>

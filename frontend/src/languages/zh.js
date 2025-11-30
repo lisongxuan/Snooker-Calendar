@@ -26,6 +26,9 @@ const zh = {
         downloadICS:"下载ICS",
         googleCalendar:"添加到谷歌日历",
         lastUpdated:"最后更新",
+        latestPlayerInfoDate:"最新球员信息日期",
+        latestEventInfoDate:"最新赛事信息日期",
+        noData:"暂无数据",
     },
     updateLog:{
         title:"更新日志",
