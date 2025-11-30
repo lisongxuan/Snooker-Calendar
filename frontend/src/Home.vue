@@ -187,7 +187,7 @@ const downloadICS = (playerId: number) => {
 };
 
 const addToGoogleCalendar = (playerId: number) => {
-  const url = `https://www.google.com/calendar/render?cid=${config.backendUrl}/static/${playerId}.ics`;
+  const url = `https://www.google.com/calendar/render?cid=${config.backendWebCalUrl}/static/${playerId}.ics`;
   window.open(url, '_blank');
 };
 
