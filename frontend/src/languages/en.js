@@ -44,6 +44,14 @@ const en = {
                     "1. Basic functions implemented",
                 ]
             }
+            {
+                version:"1.1.0",
+                date:"2025-11-30",
+                detail:[
+                    "1. Added last updated time display and timezone adaptation",
+                    "2. Fixed some known issues",
+                ]
+            }
         ]
     }
 }
