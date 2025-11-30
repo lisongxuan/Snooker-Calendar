@@ -29,6 +29,9 @@ const en = {
         downloadICS:"Download ICS",
         googleCalendar:"Google Calendar",
         lastUpdated:"Last Updated",
+        latestPlayerInfoDate:"Latest Player Info Date",
+        latestEventInfoDate:"Latest Event Info Date",
+        noData:"No Data",
     },
     updateLog:{
         title:"Update Log",

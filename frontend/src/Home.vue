@@ -26,7 +26,7 @@
           style="margin-top: 10px;"
         />
         -->
-        <div class="flex-row">
+        <div>
           <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? playerInfoDate: $t('app.noData') }}</el-tag>
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? eventInfoDate : $t('app.noData') }}</el-tag>
         </div>
