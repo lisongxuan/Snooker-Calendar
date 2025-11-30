@@ -3,5 +3,5 @@ export default {
   defaultLanguage: import.meta.env.VITE_DEFAULT_LANGUAGE || "en",
   umamiScriptSrc: import.meta.env.VITE_UMAMI_SCRIPT_SRC || "",
   umamiScriptdata: import.meta.env.VITE_UMAMI_SCRIPT_DATA || "",
-  timezone: import.meta.env.VITE_TIMEZONE || 'GMT+8'
+  timezone: import.meta.env.VITE_TIMEZONE || 'Asia/Shanghai'
 };
