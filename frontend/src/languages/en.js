@@ -10,8 +10,8 @@ const en = {
         copysuccess:"Copy Success",
         copyfail:"Copy Failed",
         selectlanguagesuccess:"Language switched, please refresh the page if there is any problem",
-        latestEventInfoDate:"Latest Event Info Date",
-        latestPlayerInfoDate:"Latest Player Info Date",
+        latestEventInfoDate:"Latest Event Info Updated",
+        latestPlayerInfoDate:"Latest Player Info Updated",
         noData:"No Data",
     },
     app:{
