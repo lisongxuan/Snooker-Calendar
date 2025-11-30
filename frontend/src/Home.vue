@@ -182,7 +182,7 @@ const handleReturn = () => {
 };
 
 const downloadICS = (playerId: number) => {
-  const url = `${config.backendUrl}/api/calendar?${playerId}`;
+  const url = `${config.backendUrl}/api/calendar/${playerId}`;
   window.open(url, '_blank');
 };
 
