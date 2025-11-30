@@ -26,7 +26,7 @@
           style="margin-top: 10px;"
         />
         -->
-        <div style="align-items: left; margin-bottom: 10px;">
+        <div>
           <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? playerInfoDate: $t('app.noData') }}</el-tag>
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? eventInfoDate : $t('app.noData') }}</el-tag>
         </div>
@@ -186,7 +186,7 @@ const addToGoogleCalendar = (playerId: number) => {
 };
 
 const getPlayers = async () => {
-  const result = await axios.get(`${config.backendUrl}/api/players`);
+  const result = await axios.get(`${config.backendUrl}/api/players?limit=200`);
   return result.data;
 };
 const getLastUpdated = async () => {
@@ -203,7 +203,7 @@ onMounted(async () => {
     for (const item of dataDate) {
       if (item.info === 'players') {
         playerInfoDate.value = item.lastupdated;
-      } else if (item.type === 'events') {
+      } else if (item.info === 'events') {
         eventInfoDate.value = item.lastupdated;
       }
     }
