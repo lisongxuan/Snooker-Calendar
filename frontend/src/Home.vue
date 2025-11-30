@@ -26,7 +26,7 @@
           style="margin-top: 10px;"
         />
         -->
-        <div>
+        <div style="align-items: left; margin-bottom: 10px;">
           <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? playerInfoDate: $t('app.noData') }}</el-tag>
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? eventInfoDate : $t('app.noData') }}</el-tag>
         </div>
