@@ -10,6 +10,9 @@ const en = {
         copysuccess:"Copy Success",
         copyfail:"Copy Failed",
         selectlanguagesuccess:"Language switched, please refresh the page if there is any problem",
+        latestEventInfoDate:"Latest Event Info Date",
+        latestPlayerInfoDate:"Latest Player Info Date",
+        noData:"No Data",
     },
     app:{
         en:"English",
@@ -26,6 +29,9 @@ const en = {
         downloadICS:"Download ICS",
         googleCalendar:"Google Calendar",
         lastUpdated:"Last Updated",
+        latestPlayerInfoDate:"Latest Player Info Date",
+        latestEventInfoDate:"Latest Event Info Date",
+        noData:"No Data",
     },
     updateLog:{
         title:"Update Log",
@@ -36,6 +42,14 @@ const en = {
                 date:"2025-11-28",
                 detail:[
                     "1. Basic functions implemented",
+                ]
+            },
+            {
+                version:"1.1.0",
+                date:"2025-11-30",
+                detail:[
+                    "1. Added last updated time display and timezone adaptation",
+                    "2. Fixed some known issues",
                 ]
             }
         ]

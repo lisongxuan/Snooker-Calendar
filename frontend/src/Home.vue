@@ -26,6 +26,10 @@
           style="margin-top: 10px;"
         />
         -->
+        <div>
+          <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? formatToLocalTime(playerInfoDate): $t('app.noData') }}</el-tag>
+          <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? formatToLocalTime(eventInfoDate) : $t('app.noData') }}</el-tag>
+        </div>
         <el-table :data="tableData"  class="custom-table">
           <el-table-column prop="position" :label="$t('app.position')"  />
           <el-table-column :label="$t('app.name')" >
@@ -47,7 +51,7 @@
           </el-table-column>
           <el-table-column :label="$t('app.lastUpdated')" >
             <template #default="{ row }">
-              <span>{{ row.last_updated || 'never' }}</span>
+              <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -67,6 +71,12 @@ import { Search } from '@element-plus/icons-vue'
 import config from './config';
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const { t ,locale} = useI18n();
 onMounted(() => {
   const storedPageLanguage = Cookies.get('pageLanguage');
@@ -80,6 +90,8 @@ interface Pagination {
   page: number;
   per_page: number;
 }
+const playerInfoDate=ref('');
+const eventInfoDate=ref('');
 const tempPaginationNumber = ref(10);
 const paginationNumber =ref(10);
 const inputValue = ref('')
@@ -170,22 +182,34 @@ const handleReturn = () => {
 };
 
 const downloadICS = (playerId: number) => {
-  const url = `${config.backendUrl}/api/calendar?${playerId}`;
+  const url = `${config.backendUrl}/api/calendar/${playerId}`;
   window.open(url, '_blank');
 };
 
 const addToGoogleCalendar = (playerId: number) => {
-  const url = `https://www.google.com/calendar/render?cid=${config.backendUrl}/static/${playerId}.ics`;
+  const url = `https://www.google.com/calendar/render?cid=${config.backendWebCalUrl}/static/${playerId}.ics`;
   window.open(url, '_blank');
 };
 
 const getPlayers = async () => {
-  const result = await axios.get(`${config.backendUrl}/api/players`);
+  const result = await axios.get(`${config.backendUrl}/api/players?limit=200`);
   return result.data;
 };
 const getLastUpdated = async () => {
   const result = await axios.get(`${config.backendUrl}/api/info/lastupdated`);
   return result.data;
+};
+const formatToLocalTime = (dbTimeString: string | null): string => {
+  if (!dbTimeString) return '';
+  
+  try {
+    const dbTime = dayjs.tz(dbTimeString, config.timezone);
+    const localTime = dbTime.local();
+    return localTime.format('YYYY-MM-DD HH:mm:ss');
+  } catch (error) {
+    console.error('Error formatting time:', error, dbTimeString);
+    return dbTimeString || '';
+  }
 };
 
 onMounted(async () => {
@@ -193,6 +217,14 @@ onMounted(async () => {
        // 加载玩家数据
        const playersData = await getPlayers();
     tableData.value = playersData;
+    const dataDate = await getLastUpdated();
+    for (const item of dataDate) {
+      if (item.info === 'players') {
+        playerInfoDate.value = item.lastupdated;
+      } else if (item.info === 'events') {
+        eventInfoDate.value = item.lastupdated;
+      }
+    }
 const storedPaginationNumber = Cookies.get('paginationNumber');
       if (storedPaginationNumber) {
         paginationNumber.value = parseInt(storedPaginationNumber, 10);

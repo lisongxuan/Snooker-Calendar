@@ -26,6 +26,9 @@ const zh = {
         downloadICS:"下载ICS",
         googleCalendar:"添加到谷歌日历",
         lastUpdated:"最后更新",
+        latestPlayerInfoDate:"最新球员信息日期",
+        latestEventInfoDate:"最新赛事信息日期",
+        noData:"暂无数据",
     },
     updateLog:{
         title:"更新日志",
@@ -36,6 +39,14 @@ const zh = {
                 date:"2025-11-28",
                 detail:[
                     "1.基础功能实现",
+                ]
+            },
+            {
+                version:"1.1.0",
+                date:"2025-11-30",
+                detail:[
+                    "1.增加了最后更新时间显示，并适配时区功能",
+                    "2.修复了一些已知问题",
                 ]
             }
         ]
