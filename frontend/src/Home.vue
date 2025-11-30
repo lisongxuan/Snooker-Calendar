@@ -27,8 +27,8 @@
         />
         -->
         <div>
-          <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? playerInfoDate: $t('app.noData') }}</el-tag>
-          <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? eventInfoDate : $t('app.noData') }}</el-tag>
+          <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? formatToLocalTime(playerInfoDate): $t('app.noData') }}</el-tag>
+          <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? formatToLocalTime(eventInfoDate) : $t('app.noData') }}</el-tag>
         </div>
         <el-table :data="tableData"  class="custom-table">
           <el-table-column prop="position" :label="$t('app.position')"  />
@@ -51,7 +51,7 @@
           </el-table-column>
           <el-table-column :label="$t('app.lastUpdated')" >
             <template #default="{ row }">
-              <span>{{ row.last_updated || $t('app.noData') }}</span>
+              <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
             </template>
           </el-table-column>
         </el-table>
@@ -71,6 +71,12 @@ import { Search } from '@element-plus/icons-vue'
 import config from './config';
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 const { t ,locale} = useI18n();
 onMounted(() => {
   const storedPageLanguage = Cookies.get('pageLanguage');
@@ -192,6 +198,18 @@ const getPlayers = async () => {
 const getLastUpdated = async () => {
   const result = await axios.get(`${config.backendUrl}/api/info/lastupdated`);
   return result.data;
+};
+const formatToLocalTime = (dbTimeString: string | null): string => {
+  if (!dbTimeString) return '';
+  
+  try {
+    const dbTime = dayjs.tz(dbTimeString, config.timezone);
+    const localTime = dbTime.local();
+    return localTime.format('YYYY-MM-DD HH:mm:ss');
+  } catch (error) {
+    console.error('Error formatting time:', error, dbTimeString);
+    return dbTimeString || '';
+  }
 };
 
 onMounted(async () => {
