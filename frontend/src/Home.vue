@@ -64,7 +64,7 @@
         </el-table>
         <div class="footer-text">
           <el-divider></el-divider>
-          All Data from Snooker.org
+          {{ $t('app.datasource') }}
         </div>
       </div>
     </div>
