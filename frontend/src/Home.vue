@@ -54,6 +54,11 @@
               <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
             </template>
           </el-table-column>
+          <el-table-column :label="$t('app.copyIcsLink')" >
+            <template #default="{ row }">
+              <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">Copy</el-button>
+            </template>
+          </el-table-column>
         </el-table>
         <div class="footer-text">
           <el-divider></el-divider>
@@ -67,13 +72,13 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted, provide, watch } from 'vue'
 import axios from 'axios';
-import { Search } from '@element-plus/icons-vue'
 import config from './config';
 import Cookies from 'js-cookie';
 import { useI18n } from 'vue-i18n';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import { ElMessage } from 'element-plus';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -220,7 +225,24 @@ const formatToLocalTime = (dbTimeString: string | null): string => {
     return dbTimeString || '';
   }
 };
+const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text).then(() => {
+    // 使用 ElMessage 显示复制成功的提示
+    ElMessage({
+      message: t('header.copysuccess'),
+      type: 'success',
+      duration: 3000, // 持续时间，单位毫秒
+    });
+  }).catch(err => {
+    // 使用 ElMessage 显示复制失败的提示
+    ElMessage.error({
+      message: t('header.copyfail'),
+      duration: 3000, // 持续时间，单位毫秒
+    });
+    console.error(t('header.copyfail'), err);
+  });
 
+}
 onMounted(async () => {
   try {
        // 加载玩家数据

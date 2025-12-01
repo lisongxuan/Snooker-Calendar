@@ -32,6 +32,7 @@ const en = {
         latestPlayerInfoDate:"Latest Player Info Date",
         latestEventInfoDate:"Latest Event Info Date",
         noData:"No Data",
+        copyIcsLink:"Copy ICS Link",
     },
     updateLog:{
         title:"Update Log",
