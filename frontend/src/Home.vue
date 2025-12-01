@@ -49,16 +49,17 @@
               <el-button v-if="row.last_updated" type="success" size="small" @click="addToGoogleCalendar(row.player_id)">Add to Calendar</el-button>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('app.lastUpdated')" >
-            <template #default="{ row }">
-              <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
-            </template>
-          </el-table-column>
           <el-table-column :label="$t('app.copyIcsLink')" >
             <template #default="{ row }">
               <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">Copy</el-button>
             </template>
           </el-table-column>
+          <el-table-column :label="$t('app.lastUpdated')" >
+            <template #default="{ row }">
+              <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
+            </template>
+          </el-table-column>
+          
         </el-table>
         <div class="footer-text">
           <el-divider></el-divider>
