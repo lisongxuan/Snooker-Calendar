@@ -227,6 +227,9 @@ const formatToLocalTime = (dbTimeString: string | null): string => {
   }
 };
 const copyToClipboard = (text: string) => {
+    window.umami?.track('copyToClipboard', {
+    content: text
+  });
   navigator.clipboard.writeText(text).then(() => {
     // 使用 ElMessage 显示复制成功的提示
     ElMessage({
