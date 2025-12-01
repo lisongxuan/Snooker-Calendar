@@ -41,17 +41,17 @@
           <el-table-column prop="num_ranking_titles" :label="$t('app.rankingTitles')"  />
           <el-table-column :label="$t('app.downloadICS')" >
             <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="primary" size="small" @click="downloadICS(row.player_id)">Download</el-button>
+              <el-button v-if="row.last_updated" type="primary" size="small" @click="downloadICS(row.player_id)">{{ $t('app.download') }}</el-button>
             </template>
           </el-table-column>
           <el-table-column :label="$t('app.googleCalendar')" >
             <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="success" size="small" @click="addToGoogleCalendar(row.player_id)">Add to Calendar</el-button>
+              <el-button v-if="row.last_updated" type="success" size="small" @click="addToGoogleCalendar(row.player_id)">{{ $t('app.subscribe') }}</el-button>
             </template>
           </el-table-column>
           <el-table-column :label="$t('app.copyIcsLink')" >
             <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">Copy</el-button>
+              <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">{{ $t('app.copy') }}</el-button>
             </template>
           </el-table-column>
           <el-table-column :label="$t('app.lastUpdated')" >

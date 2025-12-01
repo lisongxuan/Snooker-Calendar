@@ -33,6 +33,9 @@ const en = {
         latestEventInfoDate:"Latest Event Info Date",
         noData:"No Data",
         copyIcsLink:"Copy ICS Link",
+        download:"Download",
+        subscribe:"Subscribe",
+        copy:"Copy"
     },
     updateLog:{
         title:"Update Log",

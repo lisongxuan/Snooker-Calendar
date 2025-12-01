@@ -30,6 +30,9 @@ const zh = {
         latestEventInfoDate:"最新赛事信息更新日期",
         noData:"暂无数据",
         copyIcsLink:"复制ICS链接",
+        download:"下载",
+        subscribe:"添加",
+        copy:"复制"
     },
     updateLog:{
         title:"更新日志",
