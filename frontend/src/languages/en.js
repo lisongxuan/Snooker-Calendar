@@ -35,7 +35,8 @@ const en = {
         copyIcsLink:"Copy ICS Link",
         download:"Download",
         subscribe:"Subscribe",
-        copy:"Copy"
+        copy:"Copy",
+        datasource:"All data comes from Snooker.org"
     },
     updateLog:{
         title:"Update Log",

@@ -2,6 +2,8 @@
 
 A  web application that provides snooker players' match schedules in calendar format. Users can download ICS files to import match schedules into their preferred calendar applications or directly add them to Google Calendar.
 
+Link: [https://snookercalendar.arkady14.site/](https://snookercalendar.arkady14.site/)
+
 ## Features
 
 - **Player Rankings**: Display current snooker player rankings with detailed information
@@ -10,11 +12,13 @@ A  web application that provides snooker players' match schedules in calendar fo
 - **Multi-language Support**: English, Chinese
 - **Automated Data Updates**: Automated daily updates
 
-## All data used in this project comes from Snooker.org API
+## All data used in this project comes from Snooker.org APIs
 
 # 斯诺克日历
 
-一个网页应用程序，以日历格式提供斯诺克球员的比赛赛程。用户可以下载ICS文件，将比赛赛程导入到日历应用程序中，或直接添加到Google Calendar。
+一个网页应用程序，以日历格式提供斯诺克球员的比赛赛程。用户可以下载ICS文件，将比赛赛程导入到他们喜欢的日历应用程序中，或直接添加到Google Calendar。
+
+部署链接：[https://snookercalendar.arkady14.site/](https://snookercalendar.arkady14.site/)
 
 ## 功能特点
 
@@ -25,3 +29,4 @@ A  web application that provides snooker players' match schedules in calendar fo
 - **自动数据更新**：每日自动更新数据
 
 ## 本项目使用的所有数据均来自Snooker.org API
+

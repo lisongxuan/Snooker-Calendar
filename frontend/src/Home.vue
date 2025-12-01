@@ -30,6 +30,7 @@
           <el-tag>{{ $t('app.latestPlayerInfoDate') }}: {{ playerInfoDate ? formatToLocalTime(playerInfoDate): $t('app.noData') }}</el-tag>
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? formatToLocalTime(eventInfoDate) : $t('app.noData') }}</el-tag>
         </div>
+        <div><el-text class="mx-1">{{ $t('app.datasource') }}</el-text></div>
         <el-table :data="tableData"  class="custom-table">
           <el-table-column prop="position" :label="$t('app.position')"  />
           <el-table-column :label="$t('app.name')" >
@@ -299,7 +300,7 @@ const storedDefaultLanguage = Cookies.get('defaultLanguage');
   margin-top: 0;
   padding: 0;
   color: #666;
-  font-size: 14px;
+  font-size: 17px;
   text-align: center;
 }
 </style>

@@ -32,7 +32,8 @@ const zh = {
         copyIcsLink:"复制ICS链接",
         download:"下载",
         subscribe:"添加",
-        copy:"复制"
+        copy:"复制",
+        datasource:"所有数据均来自Snooker.org",
     },
     updateLog:{
         title:"更新日志",
