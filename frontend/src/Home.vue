@@ -31,7 +31,7 @@
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? formatToLocalTime(eventInfoDate) : $t('app.noData') }}</el-tag>
         </div>
         <div><el-text class="mx-1">{{ $t('app.datasource') }}</el-text></div>
-        <el-table :data="tableData"  class="custom-table">
+        <el-table :data="tableData"  class="custom-table" empty-text="$t('app.noData')">
           <el-table-column prop="position" :label="$t('app.position')"  />
           <el-table-column :label="$t('app.name')" >
             <template #default="{ row }">
