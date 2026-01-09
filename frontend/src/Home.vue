@@ -31,37 +31,40 @@
           <el-tag>{{ $t('app.latestEventInfoDate') }}: {{  eventInfoDate ? formatToLocalTime(eventInfoDate) : $t('app.noData') }}</el-tag>
         </div>
         <div><el-text class="mx-1">{{ $t('app.datasource') }}</el-text></div>
-        <el-table :data="tableData"  class="custom-table" empty-text="$t('app.noData')">
-          <el-table-column prop="position" :label="$t('app.position')"  />
-          <el-table-column :label="$t('app.name')" >
-            <template #default="{ row }">
-              <div>{{ row.surname_first ? `${row.lastname} ${row.firstname}` : `${row.firstname} ${row.lastname}` }}</div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="sum_value" :label="$t('app.sumValue')" />
-          <el-table-column prop="num_ranking_titles" :label="$t('app.rankingTitles')"  />
-          <el-table-column :label="$t('app.downloadICS')" >
-            <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="primary" size="small" @click="downloadICS(row.player_id)">{{ $t('app.download') }}</el-button>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('app.googleCalendar')" >
-            <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="success" size="small" @click="addToGoogleCalendar(row.player_id)">{{ $t('app.subscribe') }}</el-button>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('app.copyIcsLink')" >
-            <template #default="{ row }">
-              <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">{{ $t('app.copy') }}</el-button>
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('app.lastUpdated')" >
-            <template #default="{ row }">
-              <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
-            </template>
-          </el-table-column>
-          
-        </el-table>
+<el-table :data="tableData" class="custom-table">
+  <el-table-column prop="position" :label="$t('app.position')"  />
+  <el-table-column :label="$t('app.name')" >
+    <template #default="{ row }">
+      <div>{{ row.surname_first ? `${row.lastname} ${row.firstname}` : `${row.firstname} ${row.lastname}` }}</div>
+    </template>
+  </el-table-column>
+  <el-table-column prop="sum_value" :label="$t('app.sumValue')" />
+  <el-table-column prop="num_ranking_titles" :label="$t('app.rankingTitles')"  />
+  <el-table-column :label="$t('app.downloadICS')" >
+    <template #default="{ row }">
+      <el-button v-if="row.last_updated" type="primary" size="small" @click="downloadICS(row.player_id)">{{ $t('app.download') }}</el-button>
+    </template>
+  </el-table-column>
+  <el-table-column :label="$t('app.googleCalendar')" >
+    <template #default="{ row }">
+      <el-button v-if="row.last_updated" type="success" size="small" @click="addToGoogleCalendar(row.player_id)">{{ $t('app.subscribe') }}</el-button>
+    </template>
+  </el-table-column>
+  <el-table-column :label="$t('app.copyIcsLink')" >
+    <template #default="{ row }">
+      <el-button v-if="row.last_updated" type="primary" size="small" @click="copyToClipboard(`${config.backendWebCalUrl}/static/${row.player_id}.ics`)">{{ $t('app.copy') }}</el-button>
+    </template>
+  </el-table-column>
+  <el-table-column :label="$t('app.lastUpdated')" >
+    <template #default="{ row }">
+      <span>{{ formatToLocalTime(row.last_updated) || $t('app.noData') }}</span>
+    </template>
+  </el-table-column>
+  
+  <template #empty>
+    <el-empty :description="$t('app.noData')" />
+  </template>
+</el-table>
         <div class="footer-text">
           <el-divider></el-divider>
           {{ $t('app.datasource') }}
