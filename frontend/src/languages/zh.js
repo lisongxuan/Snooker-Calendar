@@ -28,7 +28,7 @@ const zh = {
         lastUpdated:"最后更新",
         latestPlayerInfoDate:"最新球员信息更新日期",
         latestEventInfoDate:"最新赛事信息更新日期",
-        noData:"暂无数据",
+        noData:"数据未成功加载，请刷新页面",
         copyIcsLink:"复制ICS链接",
         download:"下载",
         subscribe:"添加",

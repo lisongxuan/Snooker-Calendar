@@ -31,7 +31,7 @@ const en = {
         lastUpdated:"Last Updated",
         latestPlayerInfoDate:"Latest Player Info Date",
         latestEventInfoDate:"Latest Event Info Date",
-        noData:"No Data",
+        noData:"Data not loaded, please refresh the page",
         copyIcsLink:"Copy ICS Link",
         download:"Download",
         subscribe:"Subscribe",
