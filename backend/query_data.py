@@ -25,7 +25,13 @@ def load_config(filename='config.txt'):
 db_config, api_config = load_config()
 
 # Create SQLAlchemy engine
-engine = sqla.create_engine(f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}", pool_size=10, max_overflow=-1)
+engine = sqla.create_engine(
+    f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
+    pool_size=10,
+    max_overflow=-1,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
 Base = declarative_base()
 
 class Player(Base):
@@ -352,7 +358,24 @@ def query_info_last_updated():
         session.close()
 
 
+_current_season_cache = {"value": None, "ts": 0}
+_SEASON_CACHE_TTL = 86400  # 24 hours
+
+
 def get_current_season(retries: int = 3, backoff_factor: float = 1.0, status_forcelist=(429, 500, 502, 503, 504)):
+    """缓存包装器：结果缓存 24 小时，避免每次请求都调用外部 API。"""
+    now = time.time()
+    if _current_season_cache["value"] is not None and now - _current_season_cache["ts"] < _SEASON_CACHE_TTL:
+        return _current_season_cache["value"]
+
+    result = _fetch_current_season(retries, backoff_factor, status_forcelist)
+    if result is not None:
+        _current_season_cache["value"] = result
+        _current_season_cache["ts"] = now
+    return result
+
+
+def _fetch_current_season(retries: int = 3, backoff_factor: float = 1.0, status_forcelist=(429, 500, 502, 503, 504)):
     """
     从 https://api.snooker.org/?t=20 获取当前赛季（CurrentSeason）。
 

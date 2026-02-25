@@ -30,7 +30,13 @@ def load_config(filename='config.txt'):
 db_config, api_config = load_config()
 
 # Create SQLAlchemy engine
-engine = sqla.create_engine(f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}", pool_size=10, max_overflow=-1)
+engine = sqla.create_engine(
+    f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
+    pool_size=10,
+    max_overflow=-1,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
 Base = declarative_base()
 class InfoLastUpdated(Base):
     __tablename__ = 'infolastupdated'

@@ -8,6 +8,7 @@ from typing import List, Optional
 import os
 import configparser
 from datetime import datetime
+from time import time as _time
 
 from query_data import (
     query_info_last_updated,
@@ -46,6 +47,14 @@ class PlayerFilter(BaseModel):
     max_ranking: Optional[int] = None
     has_upcoming_matches: Optional[bool] = None
 
+# --------------- In-memory cache ---------------
+_players_cache: dict = {}
+_PLAYERS_CACHE_TTL = 300  # 5 minutes
+
+_last_updated_cache: dict = {"data": None, "ts": 0}
+_LAST_UPDATED_CACHE_TTL = 60  # 1 minute
+
+
 @app.get("/api/players")
 def get_players(
     page: int = 1, 
@@ -54,7 +63,15 @@ def get_players(
 ):
     """获取玩家列表"""
     try:
+        cache_key = (page, limit, search)
+        now = _time()
+        if cache_key in _players_cache:
+            data, ts = _players_cache[cache_key]
+            if now - ts < _PLAYERS_CACHE_TTL:
+                return data
+
         players = query_all_ranking_players(page=page, limit=limit, search=search)
+        _players_cache[cache_key] = (players, now)
         return players
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -91,7 +108,13 @@ def download_player_calendar(player_id: int):
 def get_last_updated_info():
     """获取最后更新时间"""
     try:
+        now = _time()
+        if _last_updated_cache["data"] is not None and now - _last_updated_cache["ts"] < _LAST_UPDATED_CACHE_TTL:
+            return _last_updated_cache["data"]
+
         last_updated = query_info_last_updated()
+        _last_updated_cache["data"] = last_updated
+        _last_updated_cache["ts"] = now
         return last_updated
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
