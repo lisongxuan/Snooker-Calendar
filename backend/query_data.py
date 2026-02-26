@@ -341,8 +341,8 @@ def query_all_ranking_players(page=1, limit=-1, search=None):
 
         return players
     except Exception as e:
-        print(f"Error querying ranking: {e}")
-        return None
+        print(f"Error querying ranking: {type(e).__name__}: {e}")
+        raise
     finally:
         session.close()
 
@@ -352,8 +352,8 @@ def query_info_last_updated():
         result = session.query(InfoLastUpdated).all()
         return result
     except Exception as e:
-        print(f"Error querying info last updated: {e}")
-        return None
+        print(f"Error querying info last updated: {type(e).__name__}: {e}")
+        raise
     finally:
         session.close()
 

@@ -71,7 +71,8 @@ def get_players(
                 return data
 
         players = query_all_ranking_players(page=page, limit=limit, search=search)
-        _players_cache[cache_key] = (players, now)
+        if players is not None:
+            _players_cache[cache_key] = (players, now)
         return players
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -113,8 +114,9 @@ def get_last_updated_info():
             return _last_updated_cache["data"]
 
         last_updated = query_info_last_updated()
-        _last_updated_cache["data"] = last_updated
-        _last_updated_cache["ts"] = now
+        if last_updated is not None:
+            _last_updated_cache["data"] = last_updated
+            _last_updated_cache["ts"] = now
         return last_updated
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
