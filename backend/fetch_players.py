@@ -101,7 +101,7 @@ class Ranking(Base):
 def init_db():
     Base.metadata.create_all(engine)
 
-def fetch_single_player(player_id, client=None, session=None):
+def fetch_single_player(player_id, client=None, session=None, max_retries=2):
     """
     Fetch and store a single player's information.
 
@@ -109,6 +109,7 @@ def fetch_single_player(player_id, client=None, session=None):
         player_id (int): The ID of the player to fetch
         client: Optional API client instance
         session: Optional database session instance
+        max_retries: Maximum retry attempts on failure
 
     Returns:
         bool: True if successful, False if failed
@@ -125,28 +126,37 @@ def fetch_single_player(player_id, client=None, session=None):
     else:
         should_close_session = False
 
-    try:
-        print(f"Fetching player {player_id}...")
+    for attempt in range(max_retries):
+        try:
+            print(f"Fetching player {player_id} (attempt {attempt + 1}/{max_retries})...")
 
-        # Get player data
-        player_data = client.player(player_id)
+            # Get player data
+            player_data = client.player(player_id)
 
-        # Create or update player in database
-        player = Player(player_data)
-        session.merge(player)  # merge will insert or update
-        session.commit()
+            # Create or update player in database
+            player = Player(player_data)
+            session.merge(player)  # merge will insert or update
+            session.commit()
 
-        print(f"Successfully stored/updated player {player_id}: {player_data.FirstName} {player_data.LastName}")
-        return True
+            print(f"Successfully stored/updated player {player_id}: {player_data.FirstName} {player_data.LastName}")
+            return True
 
-    except Exception as e:
-        print(f"Error fetching/storing player {player_id}: {e}")
-        session.rollback()
-        return False
+        except Exception as e:
+            error_name = type(e).__name__
+            print(f"Error fetching/storing player {player_id} (attempt {attempt + 1}/{max_retries}): {error_name}")
+            session.rollback()
+            
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch player {player_id} after {max_retries} attempts. Skipping.")
 
-    finally:
-        if should_close_session:
-            session.close()
+    if should_close_session:
+        session.close()
+    
+    return False
 
 def fetch_and_store_players():
     # Initialize API client

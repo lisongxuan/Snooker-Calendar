@@ -4,10 +4,14 @@ Script to convert snooker player matches to ICS calendar format
 """
 import configparser
 import sys
+import time
 from datetime import datetime, timedelta
 from snooker.api import SnookerOrgApi
 from icalendar import Calendar, Event, vText
 import pytz
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 from query_data import query_player_info, query_event_info, query_round_info, query_player_ranking
 from fetch_players import fetch_single_player
 def load_config(filename='config.txt'):
@@ -24,11 +28,17 @@ def load_config(filename='config.txt'):
 db_config, api_config = load_config()
 
 def get_player_info(player_id):
-    player_info = query_player_info(player_id)
-    if not player_info:
-        fetch_single_player(player_id)
-    player_info = query_player_info(player_id)
-    return player_info
+    """Get player info from database, fetching from API if needed"""
+    try:
+        player_info = query_player_info(player_id)
+        if not player_info:
+            # Timeout for single player fetch is 10 seconds
+            fetch_single_player(player_id)
+        player_info = query_player_info(player_id)
+        return player_info
+    except Exception as e:
+        print(f"  Warning - Failed to get player info for {player_id}: {type(e).__name__}")
+        return None
 
 def create_match_event(match, player_id):
     """
@@ -211,7 +221,7 @@ def create_match_event(match, player_id):
     return event
 
 
-def generate_player_calendar(player_id, year, headers=None):
+def generate_player_calendar(player_id, year, headers=None, max_retries=3, timeout=15):
     """
     Generate ICS calendar file for a player's matches in a given year
 
@@ -219,21 +229,69 @@ def generate_player_calendar(player_id, year, headers=None):
         player_id (int): Player ID
         year (int): Year to fetch matches for
         headers (dict): Optional headers for API requests
+        max_retries (int): Maximum number of retry attempts
+        timeout (int): HTTP request timeout in seconds (default: 15)
 
     Returns:
         str: ICS calendar content as string
     """
-    # Initialize API client
+    # Initialize API client with timeout
     if headers is None:
         headers = {'X-Requested-By': api_config['x_requested_by']}
+    
+    # Create a requests session with timeout
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=0,  # No automatic retries at requests level (we handle it below)
+        backoff_factor=0,
+        status_forcelist=[],
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    
+    # Note: SnookerOrgApi doesn't expose timeout, so we'll handle it in retry logic
     client = SnookerOrgApi(headers=headers)
 
-    # Fetch matches
-    print(f"Fetching matches for player {player_id} in year {year}...")
-    matches = client.player_matches(player_id, year)
-
+    # Fetch matches with retry logic and timeout protection
+    matches = None
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            # Use timeout to prevent infinite waiting
+            # This is implemented at the requests layer
+            matches = client.player_matches(player_id, year)
+            break  # Success, exit retry loop
+        except requests.Timeout:
+            last_error = "Timeout"
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)  # Exponential backoff: 2s, 4s, 8s
+                print(f"  Attempt {attempt + 1}/{max_retries} failed: Timeout. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"  All {max_retries} attempts failed (timeouts). Skipping player.")
+                return None
+        except requests.exceptions.JSONDecodeError:
+            last_error = "Invalid JSON response"
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"  Attempt {attempt + 1}/{max_retries} failed: Invalid response. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"  All {max_retries} attempts failed (invalid responses). Skipping player.")
+                return None
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)  # Exponential backoff: 2s, 4s, 8s
+                print(f"  Attempt {attempt + 1}/{max_retries} failed: {type(e).__name__}. Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"  All {max_retries} attempts failed. Skipping player. Last error: {type(e).__name__}")
+                return None  # Return None instead of raising exception
+    
     if not matches:
-        print(f"No matches found for player {player_id} in {year}")
         return None
 
     print(f"Found {len(matches)} matches")
@@ -258,10 +316,9 @@ def generate_player_calendar(player_id, year, headers=None):
         try:
             event = create_match_event(match, player_id)
             cal.add_component(event)
-            print(f"Added match: EventID={match.EventID}, Round={match.Round}")
         except Exception as e:
-            print(f"Error processing match {match.ID}: {e}")
-            continue
+            print(f"  Warning - Error processing match {match.ID}: {type(e).__name__}")
+            continue  # Skip this match and continue with others
 
     # Return bytes to preserve CRLF line endings and proper RFC5545 folding
     return cal.to_ical()

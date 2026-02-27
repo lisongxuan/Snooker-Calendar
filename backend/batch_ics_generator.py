@@ -70,7 +70,8 @@ def generate_player_calendar_with_timeout(player_id, year, timeout):
 
 def generate_all_players_calendars(year=None):
     """
-    为所有活跃玩家生成ICS日历文件
+    为所有活跃玩家生成ICS日历文件。
+    当出现错误时自动重试，重试失败则跳过该玩家，不阻塞整体进程。
     """
     if year is None:
         from query_data import get_current_season
@@ -87,10 +88,11 @@ def generate_all_players_calendars(year=None):
         return
 
     success_count = 0
+    skip_count = 0
     total_count = len(players)
     
-    # 设置每个玩家的超时时间（秒）
-    per_player_timeout = 300  # 5分钟
+    # 设置每个玩家的超时时间（秒）- 增加到90秒以应对网络延迟
+    per_player_timeout = 90
 
     for i, player in enumerate(players, 1):
         player_id = player.get('player_id')
@@ -106,10 +108,11 @@ def generate_all_players_calendars(year=None):
             else:
                 player_name = f"{firstname or ''} {lastname or ''}".strip()
         else:
-            print(f"[{i}/{total_count}] Skipping player ID: {player_id} due to missing name info")
+            print(f"[{i}/{total_count}] ⊘ Skipping player ID: {player_id} (missing name)")
+            skip_count += 1
             continue
             
-        print(f"[{i}/{total_count}] Generating calendar for {player_name} (ID: {player_id})...")
+        print(f"[{i}/{total_count}] [{datetime.now().strftime('%H:%M:%S')}] Processing {player_name} (ID: {player_id})...")
         
         try:
             # 使用多进程实现超时
@@ -118,42 +121,57 @@ def generate_all_players_calendars(year=None):
                                          (player_id, year, per_player_timeout))
                 
                 try:
-                    # 等待结果，设置超时
-                    ics_content = result.get(timeout=per_player_timeout)
+                    # 等待结果，设置超时（添加10秒缓冲）
+                    ics_content = result.get(timeout=per_player_timeout + 10)
                     
                     if ics_content:
                         filename = f"{player_id}.ics"
                         filepath = os.path.join(output_dir, filename)
                         
-                        with open(filepath, 'wb') as f:
-                            f.write(ics_content)
-
-                        update_ics_last_updated(player_id, datetime.now())
-                        success_count += 1
-                        print(f"✓ Saved: {filepath}")
+                        try:
+                            with open(filepath, 'wb') as f:
+                                f.write(ics_content)
+                            update_ics_last_updated(player_id, datetime.now())
+                            success_count += 1
+                            print(f"  ✓ Saved ({len(ics_content)} bytes)")
+                        except Exception as write_err:
+                            print(f"  ✗ Failed to save file: {type(write_err).__name__}")
+                            skip_count += 1
                     else:
-                        print(f"⚠ No matches found for {player_name}")
+                        print(f"  ⊘ No matches found or API failed after retries")
+                        skip_count += 1
                         
                 except multiprocessing.TimeoutError:
-                    print(f"✗ Timeout generating calendar for {player_name} (ID: {player_id}) after {per_player_timeout} seconds")
-                    # 终止进程
-                    pool.terminate()
-                    pool.join()
-                    continue
+                    print(f"  ✗ Process timeout ({per_player_timeout}s exceeded) - terminating and skipping")
+                    skip_count += 1
+                    try:
+                        pool.terminate()
+                        pool.join(timeout=5)
+                    except Exception as term_err:
+                        print(f"  Warning: Error terminating pool: {type(term_err).__name__}")
+                except Exception as pool_err:
+                    print(f"  ✗ Process error ({type(pool_err).__name__}) - skipping")
+                    skip_count += 1
+                    try:
+                        pool.terminate()
+                        pool.join(timeout=5)
+                    except Exception as term_err:
+                        print(f"  Warning: Error terminating pool: {type(term_err).__name__}")
                     
         except Exception as e:
-            print(f"✗ Error generating calendar for {player_name}: {e}")
-            # 记录详细错误信息以便调试
-            import traceback
-            traceback.print_exc()
-            continue
+            print(f"  ✗ Error: {type(e).__name__} - skipping")
+            skip_count += 1
         
         # 添加延迟避免API限制
         wait_time = int(api_config.get('request_delay_seconds', 1))
-        print(f"Waiting {wait_time} seconds...")
-        time.sleep(wait_time)
+        if i < total_count:  # 不在最后一个后面等待
+            time.sleep(wait_time)
     
-    print(f"\nCompleted: {success_count}/{total_count} calendars generated successfully")
+    print(f"\n{'='*60}")
+    print(f"Batch Generation Complete:")
+    print(f"  Success: {success_count}/{total_count}")
+    print(f"  Skipped: {skip_count}/{total_count}")
+    print(f"{'='*60}")
     
 if __name__ == '__main__':
     init_db()

@@ -79,22 +79,28 @@ job_lock = threading.RLock()
 def update_rankings_job():
     with job_lock:
         logger.info("Starting rankings update...")
+        start_time = datetime.utcnow()
         try:
             fetch_and_store_players()
             # store UTC timestamp
             update_last_updated("players", datetime.utcnow())
-            logger.info("Rankings update completed successfully")
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            logger.info(f"Rankings update completed successfully in {duration:.1f} seconds")
         except Exception as e:
-            logger.error(f"Rankings update failed: {e}")
+            logger.error(f"Rankings update failed: {e}", exc_info=True)
 
 def generate_ics_job():
     with job_lock:
         logger.info("Starting ICS generation...")
+        start_time = datetime.utcnow()
         try:
             generate_all_players_calendars()
-            logger.info("ICS generation completed successfully")
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            logger.info(f"ICS generation completed successfully in {duration:.1f} seconds")
         except Exception as e:
-            logger.error(f"ICS generation failed: {e}")
+            logger.error(f"ICS generation failed: {e}", exc_info=True)
 
         # After generating ICS, opportunistically run the daily updates if they haven't run yet
         try:
@@ -114,13 +120,16 @@ def generate_ics_job():
 def update_event_info_job():
     with job_lock:
         logger.info("Starting event info update...")
+        start_time = datetime.utcnow()
         try:
             fetch_and_store_events()
             # store UTC timestamp
             update_last_updated("events", datetime.utcnow())
-            logger.info("Event info update completed successfully")
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            logger.info(f"Event info update completed successfully in {duration:.1f} seconds")
         except Exception as e:
-            logger.error(f"Event info update failed: {e}")
+            logger.error(f"Event info update failed: {e}", exc_info=True)
 
 def main():
     # Run scheduler in UTC/GMT

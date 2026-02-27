@@ -151,7 +151,7 @@ class Round(Base):
 def init_db():
     Base.metadata.create_all(engine)
 
-def fetch_single_event(event_data, client=None, session=None):
+def fetch_single_event(event_data, client=None, session=None, max_retries=2):
     """
     Fetch and store a single event's information and its rounds.
 
@@ -159,6 +159,7 @@ def fetch_single_event(event_data, client=None, session=None):
         event_data: Event object from API
         client: Optional API client instance
         session: Optional database session instance
+        max_retries: Maximum retry attempts on failure
 
     Returns:
         bool: True if successful, False if failed
@@ -175,35 +176,51 @@ def fetch_single_event(event_data, client=None, session=None):
     else:
         should_close_session = False
 
-    try:
-        event_id = event_data.ID
-        print(f"Fetching event {event_id}...")
+    event_id = event_data.ID
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Fetching event {event_id} (attempt {attempt + 1}/{max_retries})...")
 
-        # Create or update event in database
-        event = Event(event_data)
-        session.merge(event)  # merge will insert or update
-        session.commit()
+            # Create or update event in database
+            event = Event(event_data)
+            session.merge(event)  # merge will insert or update
+            session.commit()
 
-        print(f"Successfully stored/updated event {event_id}: {event_data.Name}")
+            print(f"Successfully stored/updated event {event_id}: {event_data.Name}")
 
-        # Fetch and store rounds for this event
-        rounds = client.round_info_by_event(event_id)
-        for round_data in rounds:
-            round_obj = Round(round_data)
-            session.merge(round_obj)  # merge will insert or update
-        session.commit()
+            # Fetch and store rounds for this event
+            try:
+                rounds = client.round_info_by_event(event_id)
+                for round_data in rounds:
+                    round_obj = Round(round_data)
+                    session.merge(round_obj)  # merge will insert or update
+                session.commit()
 
-        print(f"Successfully stored {len(rounds)} rounds for event {event_id}")
-        return True
+                print(f"Successfully stored {len(rounds)} rounds for event {event_id}")
+            except Exception as e:
+                print(f"Warning: Failed to fetch rounds for event {event_id}: {type(e).__name__}")
+                # Continue anyway - event data was stored successfully
+            
+            return True
 
-    except Exception as e:
-        print(f"Error fetching/storing event {event_id}: {e}")
-        session.rollback()
-        return False
+        except Exception as e:
+            error_name = type(e).__name__
+            print(f"Error fetching/storing event {event_id} (attempt {attempt + 1}/{max_retries}): {error_name}")
+            session.rollback()
+            
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch event {event_id} after {max_retries} attempts. Skipping.")
+                return False
 
-    finally:
-        if should_close_session:
-            session.close()
+    if should_close_session:
+        session.close()
+    
+    return False
 
 def fetch_and_store_events(season=None):
     """
