@@ -21,14 +21,13 @@ def load_config(filename='config.txt'):
 db_config, api_config = load_config()
 
 # Create SQLAlchemy engine
-engine = sqla.create_engine(
-    f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}",
-    pool_size=10,
-    max_overflow=-1,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-)
+engine = sqla.create_engine(f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}", pool_size=10, max_overflow=-1)
 Base = declarative_base()
+
+# Bounded API retry settings (api.snooker.org rate limit ~2 req/min per IP)
+API_FETCH_MAX_RETRIES = 3
+API_FETCH_RETRY_WAIT_SECONDS = 60
+INFO_REQUEST_DELAY_SECONDS = int(api_config.get('info_request_delay_seconds', api_config['request_delay_seconds']))
 
 class Player(Base):
     __tablename__ = 'players'
@@ -101,7 +100,7 @@ class Ranking(Base):
 def init_db():
     Base.metadata.create_all(engine)
 
-def fetch_single_player(player_id, client=None, session=None):
+def fetch_single_player(player_id, client=None, session=None, max_retries=2):
     """
     Fetch and store a single player's information.
 
@@ -109,6 +108,7 @@ def fetch_single_player(player_id, client=None, session=None):
         player_id (int): The ID of the player to fetch
         client: Optional API client instance
         session: Optional database session instance
+        max_retries: Maximum retry attempts on failure
 
     Returns:
         bool: True if successful, False if failed
@@ -125,35 +125,61 @@ def fetch_single_player(player_id, client=None, session=None):
     else:
         should_close_session = False
 
-    try:
-        print(f"Fetching player {player_id}...")
+    for attempt in range(max_retries):
+        try:
+            print(f"Fetching player {player_id} (attempt {attempt + 1}/{max_retries})...")
 
-        # Get player data
-        player_data = client.player(player_id)
+            # Get player data
+            player_data = client.player(player_id)
+            if player_data is None:
+                print(f"Player {player_id}: API returned no data (likely rate-limited), skipping without retries.")
+                if should_close_session:
+                    session.close()
+                return False
 
-        # Create or update player in database
-        player = Player(player_data)
-        session.merge(player)  # merge will insert or update
-        session.commit()
+            # Create or update player in database
+            player = Player(player_data)
+            session.merge(player)  # merge will insert or update
+            session.commit()
 
-        print(f"Successfully stored/updated player {player_id}: {player_data.FirstName} {player_data.LastName}")
-        return True
+            print(f"Successfully stored/updated player {player_id}: {player_data.FirstName} {player_data.LastName}")
+            return True
 
-    except Exception as e:
-        print(f"Error fetching/storing player {player_id}: {e}")
-        session.rollback()
-        return False
+        except Exception as e:
+            error_name = type(e).__name__
+            print(f"Error fetching/storing player {player_id} (attempt {attempt + 1}/{max_retries}): {error_name}")
+            session.rollback()
+            
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch player {player_id} after {max_retries} attempts. Skipping.")
 
-    finally:
-        if should_close_session:
-            session.close()
+    if should_close_session:
+        session.close()
+    
+    return False
 
 def fetch_and_store_players():
     # Initialize API client
     client = SnookerOrgApi(headers={'X-Requested-By': api_config['x_requested_by']})
 
-    # Get rankings
-    rankings = client.rankings(api_config['ranking_type'], get_current_season())
+    # Get rankings (bounded retries for transient API throttling)
+    rankings = None
+    for attempt in range(API_FETCH_MAX_RETRIES):
+        rankings = client.rankings(api_config['ranking_type'], get_current_season())
+        if rankings:
+            break
+        print(f"rankings returned no data (attempt {attempt + 1}/{API_FETCH_MAX_RETRIES}); likely rate-limited")
+        if attempt < API_FETCH_MAX_RETRIES - 1:
+            time.sleep(API_FETCH_RETRY_WAIT_SECONDS * (attempt + 1))
+    if not rankings:
+        raise RuntimeError(
+            f"rankings API returned no data after {API_FETCH_MAX_RETRIES} bounded retries "
+            "- likely rate-limited (403.502) by api.snooker.org. Abort so success is not recorded."
+        )
     print(f"Found {len(rankings)} rankings")
 
     # Create database session
@@ -178,7 +204,7 @@ def fetch_and_store_players():
 
         # Wait between requests (except for the last one)
         if i < len(rankings) - 1:
-            wait_time = int(api_config['request_delay_seconds'])
+            wait_time = INFO_REQUEST_DELAY_SECONDS
             print(f"Waiting {wait_time} seconds...")
             time.sleep(wait_time)
 

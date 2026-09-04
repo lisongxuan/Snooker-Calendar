@@ -25,6 +25,11 @@ db_config, api_config = load_config()
 engine = sqla.create_engine(f"mysql+pymysql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}", pool_size=10, max_overflow=-1)
 Base = declarative_base()
 
+# Bounded API retry settings (api.snooker.org rate limit ~2 req/min per IP)
+API_FETCH_MAX_RETRIES = 3
+API_FETCH_RETRY_WAIT_SECONDS = 60
+INFO_REQUEST_DELAY_SECONDS = int(api_config.get('info_request_delay_seconds', api_config['request_delay_seconds']))
+
 class Event(Base):
     __tablename__ = 'events'
     id = sqla.Column(sqla.Integer, primary_key=True)
@@ -151,7 +156,7 @@ class Round(Base):
 def init_db():
     Base.metadata.create_all(engine)
 
-def fetch_single_event(event_data, client=None, session=None):
+def fetch_single_event(event_data, client=None, session=None, max_retries=2):
     """
     Fetch and store a single event's information and its rounds.
 
@@ -159,6 +164,7 @@ def fetch_single_event(event_data, client=None, session=None):
         event_data: Event object from API
         client: Optional API client instance
         session: Optional database session instance
+        max_retries: Maximum retry attempts on failure
 
     Returns:
         bool: True if successful, False if failed
@@ -175,35 +181,61 @@ def fetch_single_event(event_data, client=None, session=None):
     else:
         should_close_session = False
 
-    try:
-        event_id = event_data.ID
-        print(f"Fetching event {event_id}...")
+    event_id = event_data.ID
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"Fetching event {event_id} (attempt {attempt + 1}/{max_retries})...")
 
-        # Create or update event in database
-        event = Event(event_data)
-        session.merge(event)  # merge will insert or update
-        session.commit()
+            # Create or update event in database
+            event = Event(event_data)
+            session.merge(event)  # merge will insert or update
+            session.commit()
 
-        print(f"Successfully stored/updated event {event_id}: {event_data.Name}")
+            print(f"Successfully stored/updated event {event_id}: {event_data.Name}")
 
-        # Fetch and store rounds for this event
-        rounds = client.round_info_by_event(event_id)
-        for round_data in rounds:
-            round_obj = Round(round_data)
-            session.merge(round_obj)  # merge will insert or update
-        session.commit()
+            # Fetch and store rounds for this event
+            try:
+                rounds = None
+                for attempt in range(API_FETCH_MAX_RETRIES):
+                    rounds = client.round_info_by_event(event_id)
+                    if rounds:
+                        break
+                    print(f"  Warning: rounds for event {event_id} returned no data (attempt {attempt + 1}/{API_FETCH_MAX_RETRIES}); likely rate-limited")
+                    if attempt < API_FETCH_MAX_RETRIES - 1:
+                        time.sleep(API_FETCH_RETRY_WAIT_SECONDS * (attempt + 1))
+                if not rounds:
+                    print(f"  Warning: no rounds data for event {event_id} after {API_FETCH_MAX_RETRIES} attempts; event stored without rounds")
+                    rounds = []
+                for round_data in rounds:
+                    round_obj = Round(round_data)
+                    session.merge(round_obj)  # merge will insert or update
+                session.commit()
 
-        print(f"Successfully stored {len(rounds)} rounds for event {event_id}")
-        return True
+                print(f"Successfully stored {len(rounds)} rounds for event {event_id}")
+            except Exception as e:
+                print(f"Warning: Failed to fetch rounds for event {event_id}: {type(e).__name__}")
+                # Continue anyway - event data was stored successfully
+            
+            return True
 
-    except Exception as e:
-        print(f"Error fetching/storing event {event_id}: {e}")
-        session.rollback()
-        return False
+        except Exception as e:
+            error_name = type(e).__name__
+            print(f"Error fetching/storing event {event_id} (attempt {attempt + 1}/{max_retries}): {error_name}")
+            session.rollback()
+            
+            if attempt < max_retries - 1:
+                wait_time = 2 ** (attempt + 1)
+                print(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                print(f"Failed to fetch event {event_id} after {max_retries} attempts. Skipping.")
+                return False
 
-    finally:
-        if should_close_session:
-            session.close()
+    if should_close_session:
+        session.close()
+    
+    return False
 
 def fetch_and_store_events(season=None):
     """
@@ -216,8 +248,20 @@ def fetch_and_store_events(season=None):
     client = SnookerOrgApi(headers={'X-Requested-By': api_config['x_requested_by']})
     if season is None:
         season = get_current_season()
-    # Get events for the season
-    events = client.season_events(season)
+    # Get events for the season (bounded retries for transient API throttling)
+    events = None
+    for attempt in range(API_FETCH_MAX_RETRIES):
+        events = client.season_events(season)
+        if events:
+            break
+        print(f"season_events({season}) returned no data (attempt {attempt + 1}/{API_FETCH_MAX_RETRIES}); likely rate-limited")
+        if attempt < API_FETCH_MAX_RETRIES - 1:
+            time.sleep(API_FETCH_RETRY_WAIT_SECONDS * (attempt + 1))
+    if not events:
+        raise RuntimeError(
+            f"season_events({season}) returned no data after {API_FETCH_MAX_RETRIES} bounded retries "
+            "- likely rate-limited (403.502) by api.snooker.org. Abort so success is not recorded."
+        )
     print(f"Found {len(events)} events for season {season}")
 
     # Create database session
@@ -232,7 +276,7 @@ def fetch_and_store_events(season=None):
 
         # Wait between requests (except for the last one)
         if i < len(events) - 1:
-            wait_time = int(api_config['request_delay_seconds'])
+            wait_time = INFO_REQUEST_DELAY_SECONDS
             print(f"Waiting {wait_time} seconds...")
             time.sleep(wait_time)
 
