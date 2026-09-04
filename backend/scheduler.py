@@ -102,20 +102,34 @@ def clear_cancel_flag(job_type):
 def set_cancel_flag(job_type):
     cancel_flags[job_type].set()
 
+# 抢占关系: 只有更高优先级任务能取消其它任务。
+# 维护任务(events/rankings)可以中止正在跑的 ICS; 而 ICS 永远不取消维护任务
+# (否则维护任务在窗口内会被 ICS 打断, 导致 players 等不执行)。
+PREEMPTIBLE = {
+    'maintenance': frozenset({'ics'}),
+}
+
 def acquire_job_preemptively(job_type, timeout=600):
     """
-    请求任务锁（等待时间有界）。若其它任务在运行，先设置其取消标志，
-    等它在下个检查点让出锁。
+    请求任务锁（等待时间有界）。若正在运行的是一个【可被本任务抢占】的任务，
+    先设置其取消标志，等它在下个检查点让出锁；若最终没抢到，则撤销该取消标志，
+    避免残留标志误伤后续任务。
     """
     global running_job_type
-    if running_job_type and running_job_type != job_type:
+    to_cancel = None
+    if running_job_type and running_job_type != job_type and \
+            running_job_type in PREEMPTIBLE.get(job_type, ()):
+        to_cancel = running_job_type
         logger.info(f"Cancelling {running_job_type} job to run {job_type} job")
-        set_cancel_flag(running_job_type)
+        set_cancel_flag(to_cancel)
     acquired = job_lock.acquire(timeout=timeout)
     if acquired:
         running_job_type = job_type
         clear_cancel_flag(job_type)
         return True
+    # 未抢到锁: 撤销可能已设置的取消标志, 避免残留导致其它任务被误中断
+    if to_cancel:
+        clear_cancel_flag(to_cancel)
     logger.warning(f"Could not acquire lock to run {job_type} job within {timeout}s timeout")
     return False
 
