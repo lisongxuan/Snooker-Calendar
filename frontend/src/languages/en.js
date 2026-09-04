@@ -56,6 +56,17 @@ const en = {
                     "1. Added last updated time display and timezone adaptation",
                     "2. Fixed some known issues",
                 ]
+            },
+            {
+                version:"1.2.0",
+                date:"2026-09-04",
+                detail:[
+                    "1. Faster page loading and data refresh thanks to improved caching",
+                    "2. Data updates are more reliable and less likely to get stuck",
+                    "3. Fixed an issue where the page showed empty data after a period of inactivity; it now loads normally on first visit",
+                    "4. Improved the message shown when data fails to load",
+                    "5. Calendar (ICS) generation is more stable and less likely to fail or hang",
+                ]
             }
         ]
     }
